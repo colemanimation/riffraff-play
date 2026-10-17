@@ -1,0 +1,74 @@
+/* Original RiffRaff styling informed by the observed Quiplash 3 controller structure.
+   No Jackbox images, code, or proprietary font files are distributed. */
+@font-face{font-family:Rokkitt;src:url('assets/Rokkitt.ttf') format('truetype');font-style:normal;font-weight:100 900;font-display:swap}
+.controller{background-color:var(--player,#efb56d);background-image:linear-gradient(115deg,#ffffff20,#ffffff00 45%,#0000000b),url('assets/foam-grain.svg');background-size:auto,220px 220px;color:#201b16}
+.controller[data-screen=join],.controller[data-screen=closed]{background:#163ee6 url('assets/clay-waves.png') center/cover fixed;color:#fff}
+.controller[data-screen=join] #app{background:#fff4ddf5;border-radius:18px;padding:10px 22px 24px;margin:12px auto 25px;color:#201b16;max-width:440px;width:calc(100% - 24px);box-shadow:0 8px 0 #071a6133}
+.controller-top{margin:0 auto;max-width:none;padding:8px 16px;min-height:58px;background:#f3ecd5;box-shadow:0 3px 0 #0002;gap:12px}
+.controller-top .mini-brand{font-family:Rokkitt,Georgia,serif;font-weight:900}
+.controller-top.player-strip{background:var(--player-dark,#683b19);color:#fff;height:58px}
+.controller-top.player-strip .mini-brand{font-family:'Segoe UI',Arial,sans-serif;display:flex;gap:10px;align-items:center;font-size:20px;letter-spacing:-.5px;color:white;text-transform:uppercase}
+.controller-top .player-name{color:white}
+.controller-top.player-strip .quiet-button{background:#ffffff15;border:1px solid #ffffff70;color:#fff}
+.top-avatar{width:40px;height:40px;object-fit:contain}
+.controller #app{padding:16px 12px 28px;max-width:500px}
+.controller h1,.controller h2,.controller .primary,.controller .secondary,.controller .vote-choice{font-family:Rokkitt,Rockwell,Georgia,serif}
+.controller h1{font-size:38px;letter-spacing:-.7px;line-height:1.03;font-weight:850;margin:20px 0}
+.controller h2{font-size:29px;line-height:1.04;font-weight:750}
+.controller .primary,.controller .secondary{font-family:Rokkitt,Georgia,serif;background:var(--player-dark,#683b19);border-radius:10px;color:#fff;box-shadow:0 5px 3px #0006;text-transform:uppercase;font-size:24px;line-height:1.1;min-height:52px;font-weight:750;letter-spacing:-.3px}
+.controller .secondary{background:#fff5deeb;color:#3b291b;font-size:20px;box-shadow:0 4px 2px #0003}
+.controller .primary:disabled{background:#d1c6b6;color:#5a534a;box-shadow:none}
+.controller .hint,.controller .tiny,.controller .kicker,.controller .entry-meta,.controller .preview-label{color:#453b32}
+.controller .hint{font-size:14px}
+.controller .prompt-card{background:transparent;border:0;box-shadow:none;border-radius:0;padding:0 5px;margin:14px 0 20px}
+.controller .prompt-card .kicker{font-size:11px;color:#483723;letter-spacing:1px}
+.controller .prompt-card h2{font-size:29px;line-height:1.08;margin:10px 0;font-weight:750;color:#251d17}
+.controller .vote-title{font-size:26px;margin:20px 5px 16px}
+.controller .vote-choice{background:var(--player-dark,#683b19);color:#fff;border-radius:10px;box-shadow:0 5px 3px #0006;border:2px solid transparent;text-align:center;align-items:center;justify-content:center;min-height:83px;font-size:25px!important;font-weight:700;text-transform:uppercase;line-height:1.05;padding:14px 12px;margin:14px 0}
+.controller .vote-choice .letter{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;margin:0;flex-shrink:0}
+.controller input[type=text],.controller textarea{background:#fffaf0;border:2px solid #6d512b88;border-radius:5px;font-size:24px;line-height:1.2;color:#201c17}
+.controller textarea{min-height:100px;padding:9px 7px;font-family:Rokkitt,Georgia,serif;font-weight:600}
+.controller label.field-label{margin:16px 0 6px}
+.controller .entry-meta{margin:5px 0}
+.controller .prompt-tabs{margin:5px 0 18px}
+.controller .prompt-tab{background:#fff4d9bb;border:1px solid #5d422c88;color:#332719;border-radius:7px;min-height:44px}
+.controller .prompt-tab[aria-pressed=true]{background:var(--player-dark);color:white}
+.controller .timer{background:#fff2d4;border-radius:7px;font-family:Rokkitt,Georgia,serif;font-size:24px;padding:1px 12px;box-shadow:0 3px 0 #0002}
+.controller .character-grid{gap:12px 5px;margin:20px 0;grid-template-columns:repeat(4,minmax(0,1fr))}
+.controller .character-choice{background:none;border:2px solid transparent;border-radius:12px;box-shadow:none;min-height:94px;font-weight:700}
+.controller .character-choice img{height:65px}
+.controller .character-choice[aria-pressed=true]{border-color:#493522;background:#fff2d39c}
+.controller .waiting-logo img,.controller .join-logo img{width:100%;height:185px;object-fit:cover;object-position:center;display:block;filter:drop-shadow(0 6px 2px #0003)}
+.controller .join-logo{height:135px;margin:-10px 0 0;overflow:hidden}
+.controller .join-logo img{height:135px;object-fit:cover}
+.controller .waiting-logo{height:200px;display:grid;place-items:center;margin:12px 0}
+.controller .waiting-copy{font-family:Rokkitt,Georgia,serif;font-size:25px;font-weight:650;line-height:1.15}
+.controller .receipt{background:#fff6e6e6;border-radius:7px;font-family:Rokkitt,Georgia,serif;font-size:23px;border:1px solid #84694488;box-shadow:0 3px 0 #0002}
+.controller .status-panel{background:#fff4ddb8;border-radius:9px}
+.controller .royale-answer{background:#fff6e9e8;border:1px solid #86644377;border-radius:9px;box-shadow:0 3px 0 #0002}
+.controller .royale-answer p{font-family:Rokkitt,Georgia,serif;font-size:24px;font-weight:650;line-height:1.1}
+.controller .royale-answer.own-answer{background:#fff5db8a}
+.controller .royale-answer .tiny{font-family:'Segoe UI',Arial,sans-serif;font-size:11px}
+.controller .token-controls button{background:var(--player-dark);color:#fff;border:0;border-radius:7px;box-shadow:0 2px 0 #0002}
+.controller .token-controls button:disabled{background:#ded2b9;color:#71665a;box-shadow:none}
+.controller .token-summary{background:#fff0ca;border:1px solid #76552666;border-radius:7px}
+.controller .controller-footer{border:0;border-top:1px solid #0002;background:#fff2d4a3;max-width:none;color:#33271c}
+.controller .controller-footer a{color:#33271c}
+.controller .controller-footer select{background:#fff6e7;color:#33271c}
+.controller[data-screen=closed] .hint,.controller[data-screen=closed] .kicker{color:white}
+.controller .score-number{color:var(--player-dark)}
+.controller .rank-list li.self{background:#fff1d6}
+.controller dialog{background:#fff5e4}
+.controller dialog .primary{font-family:'Segoe UI',Arial,sans-serif;font-size:17px}
+.controller .error{color:#7e2005;font-weight:750}
+.controller.large .prompt-card h2{font-size:35px}.controller.large .vote-choice{font-size:30px!important}.controller.large .waiting-copy{font-size:30px}.controller.large .royale-answer p{font-size:29px!important}
+.hero{background:#1439cf url('assets/clay-waves.png') center/cover;color:white;min-height:790px;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#0b1b7abf,#0d25705e 50%,transparent);pointer-events:none}
+.hero-copy,.hero-stage{position:relative;z-index:1}
+.hero .eyebrow,.hero .small-note{color:#fff4dc}.hero h1{font-family:Rokkitt,Georgia,serif;font-size:clamp(60px,6.7vw,100px);letter-spacing:-3px;font-weight:900;text-shadow:0 5px 0 #0d1a6f88}.hero em{color:#ffbd5b}.hero .dark{background:#ffb15d;color:#282013;box-shadow:0 5px 0 #a9441b}
+.hero-stage{background:none;border-radius:0;min-height:620px}.hero-stage .stage-caption{display:none}.hero-stage .preview-phone{width:315px;height:630px;max-width:94%;border:8px solid #222b3a;border-radius:35px;transform:rotate(5deg);box-shadow:16px 20px 0 #08145288;background:#efb56d}.hero-stage .stage-friend{bottom:4px;right:-8px;width:170px}.hero-stage .paper-tag{bottom:10px;left:-28px;color:#28221b}.site-header .wordmark{font-family:Rokkitt,Georgia,serif;font-weight:900}.site-header .wordmark sup{display:none}.section-heading h2,.qr-section h2,.system-teaser h2,.design-principles h2{font-family:Rokkitt,Georgia,serif;font-weight:850}.preview-mat{background:#1946db url('assets/clay-waves.png') center/cover}.preview-mat iframe{box-shadow:14px 18px 0 #001b7099}.system-teaser{background:linear-gradient(#0b218be8,#0b218be8),url('assets/clay-waves.png') center/cover}.reference-banner{margin:0;padding:22px 5%;background:#ffe4b0;color:#342514;display:flex;gap:25px;justify-content:space-between;align-items:center;font-size:14px}.reference-banner a{font-weight:800;white-space:nowrap}
+@media(max-width:760px){.hero{padding:40px 20px 20px}.hero h1{font-size:68px}.hero-stage{margin-top:0;min-height:680px}.hero-stage .paper-tag{left:0;bottom:15px}.hero-stage .preview-phone{transform:rotate(3deg)}.reference-banner{display:block;padding:20px;font-size:13px}.reference-banner a{display:inline-block;margin-top:10px}.controller .waiting-logo img{height:180px}.hero-stage .stage-friend{width:135px;right:-12px}.controller .character-choice img{height:58px}}
+
+.hero-stage img.preview-phone{object-fit:cover;object-position:top;height:auto;max-height:650px}
+
+.controller .flavor{font-family:Rokkitt,Georgia,serif;font-size:23px;font-weight:650;line-height:1.15;margin:18px 6px}.controller.large .flavor{font-size:29px}
