@@ -1,0 +1,36 @@
+/* Offcut v1.000: original delivered font binaries. Normal faces are already heavy. */
+@font-face{font-family:Offcut;src:url('assets/fonts/Offcut-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Offcut Narrow';src:url('assets/fonts/OffcutNarrow-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+.controller,.controller *{font-family:'Offcut Narrow','Segoe UI',sans-serif!important;font-weight:400!important;font-synthesis:none}
+.controller{font-size:20px;line-height:1.4}
+.controller h1,.controller h2,.controller .prompt-card h2,.controller .player-name{font-family:Offcut,'Segoe UI',sans-serif!important;letter-spacing:0;line-height:1.28}
+.controller .primary,.controller .secondary,.controller .vote-choice,.controller .waiting-copy,.controller .receipt,.controller .royale-answer p,.controller .flavor{letter-spacing:0;line-height:1.35}
+.controller .primary,.controller .secondary{white-space:normal;overflow-wrap:anywhere;text-align:center}
+.controller .hint,.controller .error,.controller .image-description{font-size:17px;line-height:1.4}
+.controller .tiny,.controller .kicker,.controller .field-label,.controller .entry-meta,.controller .choice-label{font-size:14px;line-height:1.4}
+.controller .character-choice{font-size:12px!important;line-height:1.4}
+.controller .lobby-list div{font-size:14px;line-height:1.4}
+.controller .controller-top.player-strip .mini-brand{min-width:0;letter-spacing:0}
+.controller .player-name{overflow-wrap:anywhere;min-width:0}
+.controller .controller-top .quiet-button{flex-shrink:0}
+.controller .rank-list li{font-size:19px;align-items:center}
+.controller .rank-list li span{min-width:0;overflow-wrap:anywhere}
+.controller .rank-list li b{flex-shrink:0;font-variant-numeric:tabular-nums}
+.controller .token-controls{align-items:center}
+.controller .token-controls button{display:grid;place-items:center;padding:0;line-height:1}
+.controller .token-controls output{line-height:1;font-variant-numeric:tabular-nums}
+.controller input[type=text],.controller textarea{line-height:1.4}
+.controller .vote-choice .letter{font-size:14px;line-height:1.2}
+.controller .vote-choice{position:relative;display:block;padding:14px 46px}
+.controller .vote-choice .letter{position:absolute;left:12px;top:50%;transform:translateY(-50%);margin:0;padding:5px 6px}
+.controller .vote-choice span:last-child{display:block;width:100%;text-align:center}
+.controller .controller-footer{font-size:14px}
+.controller .controller-footer .quiet-button{line-height:1.4}
+.controller .royale-answer .tiny{font-size:14px}
+.controller.large .hint,.controller.large .error,.controller.large .image-description{font-size:21px}
+.controller.large .tiny,.controller.large .kicker,.controller.large .field-label,.controller.large .entry-meta,.controller.large .choice-label{font-size:17px!important}
+.controller.large .character-choice{font-size:14px!important}
+.controller.large .rank-list li{font-size:23px}
+/* Art-owned countdown slots keep their existing fallback until the renders arrive. */
+.controller .timer{font-family:Rokkitt,Georgia,serif!important;font-weight:800!important}
+.controller #image-access-timer,.controller #image-review-timer{font-family:'Segoe UI',Arial,sans-serif!important;font-weight:900!important}
