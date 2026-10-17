@@ -1,7 +1,7 @@
 import { CHARACTERS, ServerClock, PrivateStore, Outbox, newId, codepointLength, draftKey, totalTokens, validAllocation, acceptSnapshot } from './core.js';
 import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js';
 import { RoomTransport, ServiceError } from './transport.js';
-import { renderView, updateHeader } from './view.js?brand=original-foam-v1';
+import { renderView, updateHeader } from './view.js?brand=transparent-foam-v1';
 import { ImageReview, imageReviewEnabled } from './image-review.js';
 
 const $=selector=>document.querySelector(selector);

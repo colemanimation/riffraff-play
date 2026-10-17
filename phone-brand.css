@@ -1,4 +1,10 @@
-/* User-selected F17 still from Find original logo mockup. Keep the complete frame. */
+/* Transparent F17 from Find original logo mockup; static while using the phone. */
+.controller-top .mini-brand > img:not(.top-avatar) {
+  display: block;
+  width: 96px;
+  height: 44px;
+  object-fit: contain;
+}
 .controller .join-logo,
 .controller .waiting-logo {
   height: auto;
@@ -13,6 +19,6 @@
   height: auto;
   aspect-ratio: 1672 / 941;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 0;
   filter: none;
 }

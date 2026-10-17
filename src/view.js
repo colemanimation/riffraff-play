@@ -2,9 +2,9 @@ import { CHARACTERS, character, escapeHtml as esc, codepointLength, totalTokens 
 
 const avatar = id => {
   const c = CHARACTERS.find(c=>c[0]===id);
-  return c ? `<img src="assets/${c[0]}.png" alt="${c[1]} foam character">` : '<span aria-label="Clank">Clank</span>';
+  return c ? `<img src="assets/${c[0]}.png?art=frames-v02" alt="${c[1]} foam character">` : '<span aria-label="Clank">Clank</span>';
 };
-const logo = () => '<div class="waiting-logo"><img src="assets/logo-original-foam-v1.png" width="1672" height="941" alt="RiffRaff"></div>';
+const logo = () => '<div class="waiting-logo"><img src="assets/logo-transparent-v1.png" width="1672" height="941" alt="RiffRaff"></div>';
 const button = (text, action, disabled=false, kind='primary') => `<button class="${kind}" data-action="${action}" ${disabled?'disabled':''}>${esc(text)}</button>`;
 const phase = label => `<div class="phase-header"><p class="kicker">${esc(label)}</p><span class="timer" aria-label="Time remaining" role="timer" aria-live="off">—</span></div>`;
 function prompt(p, label='YOUR PROMPT', expand=false) {
@@ -22,7 +22,7 @@ const receipt = text => `<div class="receipt">${esc(text)}</div>`;
 // Presentation-only model. The adapter fills every accepted/eligible/deadline value from authority.
 export function renderView(v, local) {
   const error = local.error ? `<p class="error" role="alert">${esc(local.error)}</p>` : '';
-  if(v.kind==='join')return `<div class="join-logo"><img src="assets/logo-original-foam-v1.png" width="1672" height="941" alt="RiffRaff"></div><h1>Join the game</h1><form data-form="join"><label class="field-label" for="room">Room code</label><input type="text" class="room-input" id="room" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(local.room)}" aria-describedby="join-help"><label class="field-label" for="name">Your name</label><input type="text" id="name" autocomplete="nickname" value="${esc(local.name)}" aria-describedby="name-hint"><p class="tiny" id="name-hint">Up to 12 characters</p>${error}<button class="primary" type="submit">Play</button></form><p class="hint center" id="join-help">Enter the room code on the big screen.</p>`;
+  if(v.kind==='join')return `<div class="join-logo"><img src="assets/logo-transparent-v1.png" width="1672" height="941" alt="RiffRaff"></div><h1>Join the game</h1><form data-form="join"><label class="field-label" for="room">Room code</label><input type="text" class="room-input" id="room" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(local.room)}" aria-describedby="join-help"><label class="field-label" for="name">Your name</label><input type="text" id="name" autocomplete="nickname" value="${esc(local.name)}" aria-describedby="name-hint"><p class="tiny" id="name-hint">Up to 12 characters</p>${error}<button class="primary" type="submit">Play</button></form><p class="hint center" id="join-help">Enter the room code on the big screen.</p>`;
   if(v.kind==='identity')return `<p class="kicker center">ROOM ${esc(local.room)}</p><h1 class="center">Choose your character</h1><div class="character-grid">${CHARACTERS.map(([id,name])=>`<button class="character-choice" data-character="${id}" aria-label="Choose ${name} character" aria-pressed="${local.character===id}" ${local.busy?'disabled':''}>${avatar(id)}<span>${name}</span></button>`).join('')}</div><p class="center"><b>${esc(local.name)}</b> · ${character(local.character)[1]}</p>${error}${button(local.busy?'Joining…':'That’s me','join',local.busy)}${button('Back','back',local.busy,'secondary')}<p class="hint center">Choose a face.<br>It will be associated with your decisions.</p>`;
   if(v.kind==='reconnect')return `<div class="connection-symbol">↻</div><h1 class="center">Connection lost.</h1><p class="center waiting-copy">Your draft stays on this device.</p><div class="status-panel"><b>Waiting for the room</b>Accepted inputs and remaining time will be checked when you reconnect.</div>${error}${button('Reconnect now','reconnect',local.busy)}${button('Leave room','leave',false,'secondary')}`;
   if(v.kind==='closed')return `${logo()}<h1 class="center">This room<br>has closed.</h1><p class="center waiting-copy room-closed-reason">${esc(v.reason||'The host ended the session.')}</p><p class="flavor center">Your participation has been noted.<br>Its value remains under review.</p>${button('Join another room','leave')}`;
@@ -51,6 +51,6 @@ export function updateHeader(v,local) {
   const joined=!!v.player;const c=character(v.player?.characterId||local.character);
   document.body.dataset.screen=v.kind;document.body.style.setProperty('--player',c[2]);document.body.style.setProperty('--player-dark',c[3]);
   document.querySelector('.controller-top').classList.toggle('player-strip',joined);
-  document.querySelector('.mini-brand').innerHTML=joined?`${avatar(c[0]).replace('<img','<img class="top-avatar"')}<span class="player-name">${esc(v.player.name)}</span>`:'riff<span>raff</span>';
+  document.querySelector('.mini-brand').innerHTML=joined?`${avatar(c[0]).replace('<img','<img class="top-avatar"')}<span class="player-name">${esc(v.player.name)}</span>`:'<img src="assets/logo-transparent-v1.png" alt="RiffRaff" width="96" height="44">';
   document.querySelector('#room-label').textContent=v.room?`ROOM ${v.room}`:'RiffRaff';document.querySelector('#leave').hidden=!joined;
 }
