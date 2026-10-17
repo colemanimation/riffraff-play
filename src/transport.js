@@ -8,22 +8,23 @@ export class RoomTransport {
  async connect(room){
   if(this.channel?.open&&this.room===room)return;
   if(this.connecting&&this.room===room)return this.connecting;
+  if(Date.now()<(this.retryAt||0))throw new ServiceError('CONNECTION_BUSY');
   this.closePeer();this.room=room;
   const peer=this.peer=new window.Peer({debug:0});
   this.connecting=new Promise((resolve,reject)=>{
    let settled=false;
-   const fail=()=>{if(!settled){settled=true;clearTimeout(timer);reject(new ServiceError('HEARTH_UNREACHABLE'));}};
+   const fail=()=>{if(!settled){settled=true;clearTimeout(timer);this.retryAt=Date.now()+60000;reject(new ServiceError('HEARTH_UNREACHABLE'));}};
    const timer=setTimeout(fail,18000);
    peer.on('error',fail);
    peer.on('open',()=>{
     if(this.peer!==peer){fail();return;}
     const channel=this.channel=peer.connect('riffraff-alpha-'+room,{reliable:true,serialization:'json'});
-    channel.on('open',()=>{if(!settled){settled=true;clearTimeout(timer);resolve();}});
+    channel.on('open',()=>{if(!settled){settled=true;clearTimeout(timer);this.retryAt=0;resolve();}});
     channel.on('error',fail);
     channel.on('close',()=>{fail();if(this.channel===channel){this.channel=null;this.onConnection(false);}});
     channel.on('data',message=>this.reply(message));
    });
-  }).finally(()=>{this.connecting=null;});
+  }).finally(()=>{if(this.peer===peer)this.connecting=null;});
   return this.connecting;
  }
  reply(message){
@@ -47,7 +48,12 @@ export class RoomTransport {
   });
  }
  async join(room,body){return this.rpc({room,action:'join',body});}
- start(session){this.stop();this.session=session;const generation=this.generation;this.poll(generation);this.timer=setInterval(()=>this.poll(generation),650);}
+ start(session){
+  // Joining already opened a working channel. Keep it instead of registering
+  // a second signaling peer for the same phone and room.
+  this.generation++;clearInterval(this.timer);this.busy=false;this.session=session;
+  const generation=this.generation;this.poll(generation);this.timer=setInterval(()=>this.poll(generation),650);
+ }
  async poll(generation=this.generation){
   if(this.busy||!this.session)return;this.busy=true;
   try{const next=await this.rpc({room:this.session.room_id,token:this.session.session_token,action:'snapshot'});if(generation!==this.generation)return;this.onConnection(true);this.onSnapshot(next);}
@@ -64,6 +70,6 @@ export class RoomTransport {
    this.images.get(file).then(url=>{if(img.isConnected)img.src=url;}).catch(()=>{if(img.isConnected)img.onerror?.();});
   }
  }
- closePeer(){this.channel?.close();this.channel=null;this.peer?.destroy();this.peer=null;for(const pending of this.requests.values())pending.finish({ok:false,error:'HEARTH_UNREACHABLE'});this.requests.clear();}
+ closePeer(){this.connecting=null;this.channel?.close();this.channel=null;this.peer?.destroy();this.peer=null;for(const pending of this.requests.values())pending.finish({ok:false,error:'HEARTH_UNREACHABLE'});this.requests.clear();}
  stop(){this.generation++;clearInterval(this.timer);this.busy=false;this.session=null;this.closePeer();for(const value of this.images.values())value.then(url=>URL.revokeObjectURL(url)).catch(()=>{});this.images.clear();}
 }
