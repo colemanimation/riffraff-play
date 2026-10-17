@@ -1,0 +1,18 @@
+/* User-selected F17 still from Find original logo mockup. Keep the complete frame. */
+.controller .join-logo,
+.controller .waiting-logo {
+  height: auto;
+  margin: 10px 0 16px;
+  overflow: visible;
+  display: block;
+}
+.controller .join-logo img,
+.controller .waiting-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1672 / 941;
+  object-fit: contain;
+  border-radius: 10px;
+  filter: none;
+}
