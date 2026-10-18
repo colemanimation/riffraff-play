@@ -1,6 +1,6 @@
 import { CHARACTERS, ServerClock, PrivateStore, Outbox, newId, codepointLength, draftKey, totalTokens, validAllocation, acceptSnapshot } from './core.js';
 import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js';
-import { RoomTransport, ServiceError } from './transport.js';
+import { RoomTransport, ServiceError } from './transport.js?relay=20261017';
 import { renderView, updateHeader } from './view.js?brand=transparent-foam-v1';
 import { ImageReview, imageReviewEnabled } from './image-review.js';
 
@@ -124,7 +124,7 @@ async function join(){
     session={room_id:result.room_id,session_token:result.session_token,player_id:result.player_id};sessions[session.room_id]=session;store.set('sessions',sessions);store.set('session',session);store.set('joinIntent',null);screen='reconnect';transport.start(session);if(result.snapshot){connection(true);received(result.snapshot);}
   }catch(e){
     if(e instanceof ServiceError && e.status>=400&&e.status<500)store.set('joinIntent',null);
-    error=explain(e);if(store.get('joinIntent'))error='Joining is unconfirmed. Tap “That’s me” to retry the same join safely.';
+    error=explain(e);if(store.get('joinIntent'))error+=' Joining is unconfirmed. Tap “That’s me” to retry the same join safely.';
   }finally{busy=false;render();}
 }
 function leave(){savePosition();transport.stop();store.set('session',null);session=null;snapshot=null;error='';closedReason='';connected=false;screen='join';lastPhase='';$('#connection').textContent='';render(true);$('#app').focus();}

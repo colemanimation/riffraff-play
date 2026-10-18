@@ -1,20 +1,26 @@
+import {loadPhoneIceServers} from './relay.js';
 export class ServiceError extends Error {
  constructor(code,status=503){super(code);this.code=code;this.status=status;}
 }
 // The static phone page has no local-server URL. Requests travel directly to
 // the room's Hearth peer; the desktop adapter enforces player-only authority.
 export class RoomTransport {
- constructor(onSnapshot,onConnection){this.onSnapshot=onSnapshot;this.onConnection=onConnection;this.generation=0;this.session=null;this.requests=new Map();this.images=new Map();}
+ constructor(onSnapshot,onConnection,{peerFactory=options=>new window.Peer(options),relayLoader=loadPhoneIceServers}={}){this.onSnapshot=onSnapshot;this.onConnection=onConnection;this.peerFactory=peerFactory;this.relayLoader=relayLoader;this.peerEpoch=0;this.generation=0;this.session=null;this.requests=new Map();this.images=new Map();}
  async connect(room){
   if(this.channel?.open&&this.room===room)return;
   if(this.connecting&&this.room===room)return this.connecting;
   if(Date.now()<(this.retryAt||0))throw new ServiceError('CONNECTION_BUSY');
   this.closePeer();this.room=room;
-  const peer=this.peer=new window.Peer({debug:0});
-  this.connecting=new Promise((resolve,reject)=>{
+  const epoch=this.peerEpoch;
+  const task=(async()=>{
+   const iceServers=await this.relayLoader();
+   if(this.peerEpoch!==epoch)throw new ServiceError('CONNECTION_CANCELLED');
+   const peer=this.peer=this.peerFactory({debug:0,config:{iceServers}});
+   return new Promise((resolve,reject)=>{
    let settled=false;
    const fail=()=>{if(!settled){settled=true;clearTimeout(timer);this.retryAt=Date.now()+60000;reject(new ServiceError('HEARTH_UNREACHABLE'));}};
-   const timer=setTimeout(fail,18000);
+   const timer=setTimeout(fail,25000);
+   this.cancelConnect=()=>{if(!settled){settled=true;clearTimeout(timer);reject(new ServiceError('CONNECTION_CANCELLED'));}};
    peer.on('error',fail);
    peer.on('open',()=>{
     if(this.peer!==peer){fail();return;}
@@ -24,7 +30,9 @@ export class RoomTransport {
     channel.on('close',()=>{fail();if(this.channel===channel){this.channel=null;this.onConnection(false);}});
     channel.on('data',message=>this.reply(message));
    });
-  }).finally(()=>{if(this.peer===peer)this.connecting=null;});
+   });
+  })().finally(()=>{if(this.peerEpoch===epoch){this.connecting=null;this.cancelConnect=null;}});
+  this.connecting=task;
   return this.connecting;
  }
  reply(message){
@@ -70,6 +78,6 @@ export class RoomTransport {
    this.images.get(file).then(url=>{if(img.isConnected)img.src=url;}).catch(()=>{if(img.isConnected)img.onerror?.();});
   }
  }
- closePeer(){this.connecting=null;this.channel?.close();this.channel=null;this.peer?.destroy();this.peer=null;for(const pending of this.requests.values())pending.finish({ok:false,error:'HEARTH_UNREACHABLE'});this.requests.clear();}
+ closePeer(){this.peerEpoch++;this.cancelConnect?.();this.cancelConnect=null;this.connecting=null;const channel=this.channel;this.channel=null;channel?.close();this.peer?.destroy();this.peer=null;for(const pending of this.requests.values())pending.finish({ok:false,error:'HEARTH_UNREACHABLE'});this.requests.clear();}
  stop(){this.generation++;clearInterval(this.timer);this.busy=false;this.session=null;this.closePeer();for(const value of this.images.values())value.then(url=>URL.revokeObjectURL(url)).catch(()=>{});this.images.clear();}
 }
