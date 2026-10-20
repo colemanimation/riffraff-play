@@ -2,7 +2,7 @@ import { CHARACTERS, character, escapeHtml as esc, codepointLength, totalTokens 
 
 const avatar = id => {
   const c = CHARACTERS.find(c=>c[0]===id);
-  return c ? `<img src="assets/${c[0]}.png?art=frames-v02" alt="${c[1]} foam character">` : '<span aria-label="Clank">Clank</span>';
+  return c ? `<img src="assets/${c[0]}.png?art=frames-v03" alt="${c[1]} foam character">` : '<span aria-label="Clank">Clank</span>';
 };
 const logo = () => '<div class="waiting-logo"><img src="assets/logo-transparent-v1.png" width="1672" height="941" alt="RiffRaff"></div>';
 const button = (text, action, disabled=false, kind='primary') => `<button class="${kind}" data-action="${action}" ${disabled?'disabled':''}>${esc(text)}</button>`;
