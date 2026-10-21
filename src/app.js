@@ -1,7 +1,7 @@
 import { CHARACTERS, ServerClock, PrivateStore, Outbox, newId, codepointLength, draftKey, totalTokens, validAllocation, acceptSnapshot } from './core.js';
-import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js';
+import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js?controller=phone-drafts-v01';
 import { RoomTransport, ServiceError } from './transport.js?relay=20261017';
-import { renderView, updateHeader } from './view.js?brand=transparent-foam-v1';
+import { renderView, updateHeader } from './view.js?controller=phone-drafts-v01';
 import { ImageReview, imageReviewEnabled } from './image-review.js';
 import {patchView} from './input-view.js';
 import {DraftSync} from './draft-sync.js';

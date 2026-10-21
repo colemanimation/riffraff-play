@@ -1,5 +1,5 @@
 import {draftKey,newId,codepointLength} from './core.js';
-import {commandEnvelope} from './adapter.js';
+import {commandEnvelope} from './adapter.js?controller=phone-drafts-v01';
 
 // A single in-flight save, with coalesced edits and stable IDs on uncertain
 // delivery. Network acknowledgements never write into the text field.
