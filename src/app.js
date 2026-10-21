@@ -3,6 +3,8 @@ import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js';
 import { RoomTransport, ServiceError } from './transport.js?relay=20261017';
 import { renderView, updateHeader } from './view.js?brand=transparent-foam-v1';
 import { ImageReview, imageReviewEnabled } from './image-review.js';
+import {patchView} from './input-view.js';
+import {DraftSync} from './draft-sync.js';
 
 const $=selector=>document.querySelector(selector);
 const imageReview=new ImageReview(imageReviewEnabled);
@@ -14,6 +16,9 @@ let selected=store.get('character',CHARACTERS[0][0]),drafts=store.get('drafts',{
 let sessions=store.get('sessions',{});
 let lastSignature='',lastPhase='',lastAttempt=0,sending=new Set(),lastConnection=null;
 let lastAnswerKey=null;
+let composing=false,draftSaveTimer=null;
+const draftStatuses=new Map();
+const draftMessages={saving:'Saving draft…',saved:'Draft saved to the room',local:'Draft kept on this phone; waiting to save', 'too-long':'Keep your answer within 120 characters'};
 const announce=text=>{$('#announcement').textContent=text;};
 const errors={CONNECTION_BUSY:'Connections are temporarily busy. Wait a minute, then try again.',HEARTH_UNREACHABLE:'Could not reach Hearth. Check the room code, keep the host’s Hearth app open and try again in a minute.',CHARACTER_TAKEN:'That character was just chosen. Choose another.',NAME_TAKEN:'That name is already in the room. Choose another name.',INVALID_NAME:'Enter a name of up to 12 characters. Clank is reserved.',ROOM_FULL:'This room is full.',GAME_STARTED:'This game has already started.',UNAUTHORIZED:'Your room session is no longer available. Join again.',NOT_FOUND:'That room could not be found.',ROOM_NOT_FOUND:'That room could not be found.',STALE_PHASE:'That round has closed. The room did not accept this input.',WRONG_PHASE:'That action is no longer open.',INVALID_ANSWER:'Write an answer of 1–120 characters.',INELIGIBLE:'You cannot vote for that answer.',ANSWER_COMMITTED:'The room already has your answer.',VOTE_COMMITTED:'The room already has your vote.',TOKEN_BUDGET:'Use at most three tokens.',PROTOCOL_MISMATCH:'The room and controller versions do not match.'};
 const explain=e=>errors[e.code||e.error||e.message]||'The room could not confirm that request. Reconnect and try again.';
@@ -26,7 +31,8 @@ function currentView(){
 function localState(v){
   const currentDrafts={};for(const a of v.assignments||[])currentDrafts[a.id]=drafts[draftKey(snapshot,a.id)]||'';
   const pending={};if(snapshot)for(const key of Object.keys(outbox.items))if(key.startsWith(`${snapshot.game_id}/${snapshot.phase_id}/`))pending[key.slice(`${snapshot.game_id}/${snapshot.phase_id}/`.length)]=true;
-  return {room:localRoom,name:localName,character:selected,busy,error,active,drafts:currentDrafts,pending,allocation:allocations[allocationKey()]||{},durable:store.saved,imageReview:imageReviewEnabled};
+  const assignment=v.assignments?.[active]||v.assignments?.[0];
+  return {room:localRoom,name:localName,character:selected,busy,error,active,drafts:currentDrafts,pending,editKey:assignment&&snapshot?draftKey(snapshot,assignment.id):'',draftStatus:assignment&&snapshot?draftStatuses.get(draftKey(snapshot,assignment.id)):null,allocation:allocations[allocationKey()]||{},durable:store.saved,imageReview:imageReviewEnabled};
 }
 function render(force=false){
   const v=currentView(),local=localState(v);const signature=JSON.stringify([v,local]);
@@ -34,15 +40,12 @@ function render(force=false){
   const app=$('#app'),focused=document.activeElement;
   const assignment=v.assignments?.[active]||v.assignments?.[0];
   const answerKey=assignment&&snapshot?`${snapshot.room_id}/${snapshot.game_id}/${snapshot.phase_id}/${assignment.id}`:null;
-  const oldAnswer=app.querySelector('#answer');
-  const savedSelection=oldAnswer&&answerKey===lastAnswerKey?{value:oldAnswer.value,start:oldAnswer.selectionStart,end:oldAnswer.selectionEnd,direction:oldAnswer.selectionDirection}:null;
   const focus=app.contains(focused)?{id:focused.id,token:focused.dataset.token,delta:focused.dataset.delta,prompt:focused.dataset.prompt,character:focused.dataset.character,start:focused.selectionStart,end:focused.selectionEnd,scroll:window.scrollY}:null;
-  updateHeader(v,local);app.innerHTML=renderView(v,local);
-  lastAnswerKey=answerKey;const newAnswer=app.querySelector('#answer');
-  if(savedSelection&&newAnswer?.value===savedSelection.value)newAnswer.setSelectionRange(savedSelection.start,savedSelection.end,savedSelection.direction);
+  updateHeader(v,local);patchView(app,renderView(v,local));
+  lastAnswerKey=answerKey;
   for(const img of app.querySelectorAll('[data-prompt-image]'))img.onerror=()=>{img.hidden=true;const notice=app.querySelector('[data-image-error]');if(notice)notice.hidden=false;};
   transport.hydrateImages(app);
-  if(focus){
+  if(focus&&document.activeElement!==focused){
     const target=focus.id?document.getElementById(focus.id):Array.from(app.querySelectorAll('button')).find(b=>(focus.token!==undefined&&b.dataset.token===focus.token&&b.dataset.delta===focus.delta)||(focus.prompt!==undefined&&b.dataset.prompt===focus.prompt)||(focus.character!==undefined&&b.dataset.character===focus.character));
     if(target&&!target.disabled){target.focus({preventScroll:true});if(focus.start!==null&&typeof target.setSelectionRange==='function')target.setSelectionRange(focus.start,focus.end);window.scrollTo(0,focus.scroll);}
     else if(focus.token!==undefined){const other=Array.from(app.querySelectorAll('[data-token]')).find(b=>b.dataset.token===focus.token&&!b.disabled);other?.focus({preventScroll:true});}
@@ -55,6 +58,7 @@ function tick(){
   imageReview.sync(snapshot?`${snapshot.room_id}/${snapshot.game_id}/${snapshot.phase_id}`:null,remaining,connected,{kind:v.kind,prompt});
   if(timer)timer.textContent=remaining===null?'Waiting':`${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;
   if(remaining===0)for(const b of $('#app').querySelectorAll('button[type=submit],[data-vote],[data-token],[data-action=tokens]'))b.disabled=true;
+  if(remaining!==null&&remaining<=2)void draftSync.flush();
 }
 function connection(ok,e){
   connected=ok;
@@ -72,25 +76,35 @@ function received(next){
   if(next.protocol_version!==PROTOCOL||next.private?.role!=='player'){error='The room and controller versions do not match.';connected=false;render(true);return;}
   clock.sync(next.server_time_ms);
   const changed=snapshot&&next.phase_id!==snapshot.phase_id;
-  snapshot=next;screen='';error=changed?'':error;
+  snapshot=next;screen='';error=changed?'':error;if(changed)composing=false;
+  draftSync.sync(next);
+  for(const a of next.private.assignments||[]){
+    const key=draftKey(next,a.assignment_id);
+    if(!Object.hasOwn(drafts,key)&&a.draft)drafts[key]=a.draft.text;
+    if(!composing&&Object.hasOwn(drafts,key)&&!a.committed)draftSync.update(next,a.assignment_id,drafts[key]);
+  }
   let restoreScroll=null;
   if(lastPhase!==next.phase_id){
     lastPhase=next.phase_id;const saved=store.get('position');
     const restore=saved?.room===next.room_id&&saved?.game===next.game_id&&saved?.phase===next.phase_id;
     active=restore?saved.active:0;restoreScroll=restore?saved.scroll:null;
   }
+  let acksChanged=false;
   for(const [key,command] of Object.entries(outbox.items)){
     if(command.room_id!==next.room_id)continue;
     const ack=acks[command.command_id];
-    if(ack&&next.revision>=ack.revision){outbox.remove(key);delete acks[command.command_id];}
+    if(ack&&next.revision>=ack.revision){outbox.remove(key);delete acks[command.command_id];acksChanged=true;}
   }
-  store.set('acks',acks);
+  if(acksChanged)store.set('acks',acks);
   render();
   if(restoreScroll!==null)window.scrollTo(0,restoreScroll);
   if(changed){$('#app').focus({preventScroll:true});window.scrollTo(0,0);announce(`The room moved to ${next.public.phase.toLowerCase().replaceAll('_',' ')}.`);}
   if(Date.now()-lastAttempt>2500)retryPending();
 }
 const transport=new RoomTransport(received,connection);
+const draftSync=new DraftSync({send:cmd=>transport.command(cmd),onSnapshot:received,onStatus:(key,status)=>{
+  draftStatuses.set(key,draftMessages[status]||draftMessages.local);if(key===lastAnswerKey&&$('#draft-status'))$('#draft-status').textContent=draftMessages[status]||draftMessages.local;
+}});
 async function send(key,command){
   if(sending.has(command.command_id)||acks[command.command_id])return;
   const expectedSession=session;
@@ -127,8 +141,17 @@ async function join(){
     error=explain(e);if(store.get('joinIntent'))error+=' Joining is unconfirmed. Tap “That’s me” to retry the same join safely.';
   }finally{busy=false;render();}
 }
-function leave(){savePosition();transport.stop();store.set('session',null);session=null;snapshot=null;error='';closedReason='';connected=false;screen='join';lastPhase='';$('#connection').textContent='';render(true);$('#app').focus();}
+function leave(){savePosition();draftSync.stop();transport.stop();store.set('session',null);session=null;snapshot=null;error='';closedReason='';connected=false;screen='join';lastPhase='';$('#connection').textContent='';render(true);$('#app').focus();}
 function savePosition(){if(snapshot)store.set('position',{room:snapshot.room_id,game:snapshot.game_id,phase:snapshot.phase_id,active,scroll:window.scrollY});}
+function persistDrafts(){clearTimeout(draftSaveTimer);draftSaveTimer=null;store.set('drafts',drafts);}
+function editedAnswer(field){
+  const v=currentView(),a=v.assignments?.[active]||v.assignments?.[0];if(!a)return;
+  const key=draftKey(snapshot,a.id);drafts[key]=field.value;
+  if(!draftSaveTimer)draftSaveTimer=setTimeout(persistDrafts,400);
+  draftSync.update(snapshot,a.id,field.value);
+  $('#counter').textContent=`${codepointLength(field.value)}/120`;
+  error='';const alert=$('#app .error');if(alert)alert.textContent='';
+}
 
 $('#app').addEventListener('submit',event=>{
   event.preventDefault();const form=event.target.dataset.form;error='';
@@ -150,18 +173,17 @@ $('#app').addEventListener('input',event=>{
   if(event.target.id==='name')localName=event.target.value;
   if(event.target.id==='room')localRoom=event.target.value;
   if(event.target.id==='answer'){
-    const v=currentView(),a=v.assignments?.[active]||v.assignments?.[0];if(!a)return;
-    drafts[draftKey(snapshot,a.id)]=event.target.value;store.set('drafts',drafts);
-    $('#counter').textContent=`${codepointLength(event.target.value)}/120`;
-    $('#draft-status').textContent=store.saved?'Draft saved on this device':'Draft kept while this page is open';
-    error='';const alert=$('#app .error');if(alert)alert.textContent='';
+    if(!composing&&!event.isComposing)editedAnswer(event.target);
   }
 });
+$('#app').addEventListener('compositionstart',event=>{if(event.target.id==='answer')composing=true;});
+$('#app').addEventListener('compositionend',event=>{if(event.target.id==='answer'){composing=false;editedAnswer(event.target);}});
+$('#app').addEventListener('focusout',event=>{if(event.target.id==='answer'&&!composing){editedAnswer(event.target);persistDrafts();void draftSync.flush();}});
 $('#app').addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b||b.disabled)return;
   const v=currentView();
   if(b.dataset.character){if(store.get('joinIntent')){error='Retry your unconfirmed join before changing character.';}else{selected=b.dataset.character;store.set('character',selected);}render();return;}
-  if(b.dataset.prompt!==undefined){active=Number(b.dataset.prompt);savePosition();error='';render(true);return;}
+  if(b.dataset.prompt!==undefined){void draftSync.flush();active=Number(b.dataset.prompt);savePosition();error='';render(true);return;}
   if(b.dataset.vote){if(!v.choices?.some(c=>c.id===b.dataset.vote&&c.eligible))return;submit('cast_vote','vote',{answer_id:b.dataset.vote});return;}
   if(b.dataset.token){
     const allocation={...(allocations[allocationKey()]||{})},id=b.dataset.token;allocation[id]=(allocation[id]||0)+Number(b.dataset.delta);
@@ -185,6 +207,7 @@ let preferences=store.get('preferences',{large:false,reduce:matchMedia('(prefers
 function applyPreferences(){document.body.classList.toggle('large',!!preferences.large);document.body.classList.toggle('reduce',!!preferences.reduce);$('#large-text').checked=!!preferences.large;$('#reduce-motion').checked=!!preferences.reduce;store.set('preferences',preferences);}
 $('#comfort-open').onclick=()=>$('#comfort').showModal();$('#large-text').onchange=e=>{preferences.large=e.target.checked;applyPreferences();};$('#reduce-motion').onchange=e=>{preferences.reduce=e.target.checked;applyPreferences();};
 function resume(){tick();if(session){connected=false;render();transport.poll();}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')resume();else savePosition();});window.addEventListener('pagehide',savePosition);window.addEventListener('pageshow',resume);window.addEventListener('online',resume);window.addEventListener('offline',()=>connection(false));
+function suspend(){persistDrafts();savePosition();if(!composing)void draftSync.flush();}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')resume();else suspend();});window.addEventListener('pagehide',suspend);window.addEventListener('pageshow',resume);window.addEventListener('online',resume);window.addEventListener('offline',()=>connection(false));
 window.visualViewport?.addEventListener('resize',()=>{if(document.activeElement?.tagName==='TEXTAREA')document.activeElement.scrollIntoView({block:'nearest',behavior:'instant'});});
 applyPreferences();render(true);setInterval(tick,250);if(session)transport.start(session);

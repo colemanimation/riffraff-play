@@ -21,12 +21,12 @@ export function controllerView(snapshot, clock, connected) {
   const player=p.players.find(x=>x.player_id===own.player_id);
   const base={room:snapshot.room_id,label:p.round===4?'RIFF RAFF ROYALE':`ROUND ${p.round}`,
     player:player?{name:player.name,characterId:player.character_id}:null,
-    deadline:p.deadline_ms,canAct:connected && clock.remaining(p.deadline_ms)>0};
+    draftSupport:p.capabilities?.answer_drafts===true,deadline:p.deadline_ms,canAct:connected && clock.remaining(p.deadline_ms)>0};
   if(p.phase==='CLOSED')return {...base,kind:'closed',reason:p.reason};
   if(p.phase==='LOBBY')return {...base,kind:'lobby',players:p.players.map(x=>({name:x.name,characterId:x.character_id}))};
   if(['WRITING','ROYALE_WRITING'].includes(p.phase))return {...base,kind:p.phase==='WRITING'?'write':'royale-write',assignments:(own.assignments||[]).map(a=>({id:a.assignment_id,prompt:promptView(a.prompt,p.phase==='ROYALE_WRITING'&&p.round===4),accepted:a.committed?a.text:null}))};
-  if(p.phase==='VOTING')return {...base,kind:own.eligible_answer_ids.length?'vote':'own',label:base.label+' · VOTE',prompt:promptView(p.prompt),acceptedVote:own.vote??null,choices:(p.answers||[]).map(a=>({id:a.answer_id,text:a.text,eligible:own.eligible_answer_ids.includes(a.answer_id)}))};
-  if(p.phase==='ROYALE_VOTING')return {...base,kind:'royale',label:base.label+' · VOTE',prompt:promptView(p.prompt,p.round===4),budget:own.token_budget,acceptedAllocation:own.tokens===null?null:allocationCounts(own.tokens),choices:(p.answers||[]).map(a=>({id:a.answer_id,text:a.text,eligible:own.eligible_answer_ids.includes(a.answer_id),own:!own.eligible_answer_ids.includes(a.answer_id)}))};
+  if(p.phase==='VOTING')return {...base,kind:own.eligible_answer_ids.length?'vote':'own',label:base.label+' · VOTE',prompt:promptView(p.prompt),acceptedVote:own.vote??null,choices:(p.answers||[]).filter(a=>a.text!==null).map(a=>({id:a.answer_id,text:a.text,eligible:own.eligible_answer_ids.includes(a.answer_id)}))};
+  if(p.phase==='ROYALE_VOTING')return {...base,kind:'royale',label:base.label+' · VOTE',prompt:promptView(p.prompt,p.round===4),budget:own.token_budget,acceptedAllocation:own.tokens===null?null:allocationCounts(own.tokens),choices:(p.answers||[]).filter(a=>a.text!==null).map(a=>({id:a.answer_id,text:a.text,eligible:own.eligible_answer_ids.includes(a.answer_id),own:!own.eligible_answer_ids.includes(a.answer_id)}))};
   if(['STANDINGS','FINAL_STANDINGS','RESULT','ROYALE_RESULT'].includes(p.phase)){
     let lastScore=null,rank=0;
     return {...base,kind:'results',label:p.phase==='FINAL_STANDINGS'?'FINAL STANDINGS':base.label+' · RESULTS',final:p.phase==='FINAL_STANDINGS',standings:p.standings.map((x,i)=>{if(x.score!==lastScore)rank=i+1;lastScore=x.score;return {rank,name:x.name,score:x.score,self:x.player_id===own.player_id};})};
