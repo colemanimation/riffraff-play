@@ -1,10 +1,11 @@
 import { CHARACTERS, ServerClock, PrivateStore, Outbox, newId, codepointLength, draftKey, totalTokens, validAllocation, acceptSnapshot } from './core.js';
-import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js?controller=phone-drafts-v01';
+import { controllerView, commandEnvelope, PROTOCOL } from './adapter.js?controller=finish-replay-v01';
 import { RoomTransport, ServiceError } from './transport.js?relay=20261017';
-import { renderView, updateHeader } from './view.js?controller=phone-drafts-v01';
+import { renderView, updateHeader } from './view.js?controller=finish-replay-v01';
 import { ImageReview, imageReviewEnabled } from './image-review.js';
 import {patchView} from './input-view.js';
 import {DraftSync} from './draft-sync.js';
+import {clearRoomInputs,clearRoomSession} from './session-reset.js?controller=finish-replay-v01';
 
 const $=selector=>document.querySelector(selector);
 const imageReview=new ImageReview(imageReviewEnabled);
@@ -63,17 +64,26 @@ function tick(){
 function connection(ok,e){
   connected=ok;
   if(e instanceof ServiceError && [401,404,410].includes(e.status)){
-    if(session){delete sessions[session.room_id];store.set('sessions',sessions);store.set('session',null);}
-    transport.stop();session=null;snapshot=null;screen='closed';closedReason=e.status===401?'Your session is no longer available. Join another room.':'This room is no longer available. Join another room.';error='';render(true);return;
+    clearTimeout(draftSaveTimer);draftSaveTimer=null;draftSync.stop();
+    if(session){localRoom=session.room_id;store.set('room',localRoom);clearRoomSession(store,localRoom);}
+    session=null;snapshot=null;transport.stop();reloadInputs();sessions=store.get('sessions',{});
+    connected=false;busy=false;composing=false;lastPhase='';lastConnection=null;lastAnswerKey=null;sending.clear();
+    screen=e.status===401?'join':'closed';closedReason='This room is no longer available. Join another room.';
+    error=e.status===401?'Your previous session has ended. Join this room again when you are ready.':'';
+    $('#connection').textContent='';render(true);$('#app').focus({preventScroll:true});return;
   }
   $('#connection').replaceChildren();
   if(session&&!ok){$('#connection').textContent='Connection lost. Time continues in the room. ';const b=document.createElement('button');b.textContent='Reconnect';b.onclick=()=>transport.poll();$('#connection').append(b);}
   if(lastConnection!==ok){lastConnection=ok;render();}
 }
+function reloadInputs(){drafts=store.get('drafts',{});allocations=store.get('allocations',{});acks=store.get('acks',{});outbox.items=store.get('outbox',{});draftStatuses.clear();}
 function received(next){
   if(!session||next?.room_id!==session.room_id||next?.private?.player_id!==session.player_id)return;
   if(!acceptSnapshot(snapshot,next))return;
   if(next.protocol_version!==PROTOCOL||next.private?.role!=='player'){error='The room and controller versions do not match.';connected=false;render(true);return;}
+  if(snapshot?.game_id&&snapshot.game_id!==next.game_id){
+    clearTimeout(draftSaveTimer);draftSaveTimer=null;draftSync.stop();clearRoomInputs(store,next.room_id);reloadInputs();composing=false;
+  }
   clock.sync(next.server_time_ms);
   const changed=snapshot&&next.phase_id!==snapshot.phase_id;
   snapshot=next;screen='';error=changed?'':error;if(changed)composing=false;
@@ -120,6 +130,7 @@ async function send(key,command){
     if(response.snapshot){connection(true);received(response.snapshot);}else await transport.poll();
   }catch(e){
     if(session!==expectedSession)return;
+    if(e instanceof ServiceError&&[401,404,410].includes(e.status)){connection(false,e);return;}
     if(e instanceof ServiceError&&e.status>=400&&e.status<500){outbox.remove(key);error=explain(e);}
     else{connected=false;connection(false);error='Delivery is uncertain. Reconnecting will retry the same request safely.';}
   }finally{sending.delete(command.command_id);render();}

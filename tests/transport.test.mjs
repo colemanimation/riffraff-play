@@ -20,3 +20,15 @@ test('leaving during signaling settles the pending request and removes the timer
  const transport=new RoomTransport(()=>{},()=>{},{relayLoader:async()=>servers,peerFactory:()=>{const p=new EventEmitter();p.destroy=()=>{};return p;}});
  const pending=transport.connect('ABCDEF');await new Promise(r=>setImmediate(r));transport.stop();await assert.rejects(pending,e=>e.code==='CONNECTION_CANCELLED');assert.equal(transport.peer,null);
 });
+
+test('a late snapshot or authorization error from a retired session cannot replace a fresh session',async t=>{
+ const snapshots=[],connections=[],pending=[];
+ const transport=new RoomTransport(s=>snapshots.push(s),(ok,e)=>connections.push({ok,error:e?.code}));t.after(()=>transport.stop());
+ transport.rpc=request=>new Promise((resolve,reject)=>pending.push({request,resolve,reject}));
+ const old={room_id:'ABCDEF',session_token:'old'},fresh={room_id:'ABCDEF',session_token:'new'};
+ transport.start(old);transport.stop();transport.start(fresh);
+ pending[0].resolve({player:'old'});pending[1].resolve({player:'new'});await new Promise(r=>setImmediate(r));
+ assert.deepEqual(snapshots,[{player:'new'}]);assert.deepEqual(connections,[{ok:true,error:undefined}]);
+ const poll=transport.poll();transport.stop();transport.start(fresh);pending[2].reject(Object.assign(Error('UNAUTHORIZED'),{code:'UNAUTHORIZED',status:401}));pending[3].resolve({player:'new again'});await poll;await new Promise(r=>setImmediate(r));
+ assert.equal(snapshots.at(-1).player,'new again');assert(connections.every(c=>c.ok));assert.equal(transport.session,fresh);
+});
